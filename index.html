@@ -14,11 +14,11 @@
             --warning: #F59E0B;
             --warning-hover: #D97706;
             --secondary: #6B7280;
-            --secondary-hover: #4B5563;
             --bg-gradient: linear-gradient(135deg, #EEF2F6 0%, #E3E8EF 100%);
             --card-bg: #ffffff;
             --text-main: #1F2937;
             --text-muted: #6B7280;
+            --container-max-width: 550px; /* Standardmäßig Mobile-First */
         }
 
         body {
@@ -42,9 +42,9 @@
             border-radius: 24px;
             box-shadow: 0 20px 40px -15px rgba(0,0,0,0.08);
             width: 100%;
-            max-width: 550px;
+            max-width: var(--container-max-width);
             box-sizing: border-box;
-            transition: all 0.3s ease;
+            transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
         }
 
         h1 {
@@ -54,6 +54,53 @@
             font-weight: 800;
             letter-spacing: -0.025em;
             margin-bottom: 24px;
+        }
+
+        /* GERÄTE-SWITCH STYLING */
+        .mode-switch-container {
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-switch-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mode-switch {
+            background: #E2E8F0;
+            border-radius: 12px;
+            padding: 4px;
+            display: inline-flex;
+            gap: 4px;
+            border: 1px solid #CBD5E1;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-btn.active {
+            background: var(--card-bg);
+            color: var(--primary);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
 
         /* Tutorial / Onboarding Styling */
@@ -100,16 +147,16 @@
             flex-shrink: 0;
         }
 
-        /* Flexbox für die Steuerungselemente */
+        /* Steuerungselemente */
         .controls {
             margin-top: 20px;
             margin-bottom: 10px;
             width: 100%;
             display: flex;
-            gap: 10px; /* Abstand zwischen den Buttons */
+            gap: 10px;
         }
 
-        /* Moderner Datei-Upload */
+        /* Datei-Upload */
         input[type="file"] {
             display: none;
         }
@@ -148,7 +195,6 @@
             transform: scale(0.98);
         }
 
-        /* Haupt-Aktionsbuttons nehmen den restlichen Platz ein */
         .btn-main {
             flex: 1; 
         }
@@ -172,11 +218,10 @@
             background-color: var(--success-hover);
         }
 
-        /* Kleinerer Sekundärbutton für "Zurück" */
         #prev-btn {
             background-color: #E5E7EB;
             color: var(--text-main);
-            display: none; /* Wird dynamisch per JS eingeblendet */
+            display: none;
             padding: 16px 22px;
         }
         #prev-btn:hover {
@@ -205,7 +250,7 @@
             color: #065F46;
         }
 
-        /* Interaktiver Canvas-Container */
+        /* Canvas-Container */
         #canvas-container {
             margin-top: 5px;
             border: 1px solid #E5E7EB;
@@ -247,48 +292,37 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Anpassungen für das Querformat (Mobil) */
+        /* Mobile Querformat-Schonung */
         @media screen and (max-height: 520px) and (orientation: landscape) {
-            body {
-                padding: 8px;
-            }
-            .container {
-                padding: 16px;
-                max-width: 100%;
-                border-radius: 16px;
-            }
-            h1 {
-                font-size: 1.3rem;
-                margin-bottom: 12px;
-            }
-            .tutorial-card {
-                padding: 12px;
-                margin-bottom: 12px;
-            }
-            .custom-file-upload {
-                padding: 14px;
-            }
-            .status-badge {
-                margin-bottom: 10px;
-                padding: 4px 12px;
-            }
-            .btn {
-                padding: 12px;
-                font-size: 1rem;
-            }
+            body { padding: 8px; }
+            .container { padding: 16px; border-radius: 16px; }
+            h1 { font-size: 1.3rem; margin-bottom: 12px; }
+            .mode-switch-container { margin-bottom: 12px; }
+            .tutorial-card { padding: 12px; margin-bottom: 12px; }
+            .custom-file-upload { padding: 14px; }
+            .status-badge { margin-bottom: 10px; padding: 4px 12px; }
+            .btn { padding: 12px; font-size: 1rem; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="app-container">
     <h1>📚 PDF Karteikarten</h1>
+    
+    <div class="mode-switch-container" id="mode-switch-section">
+        <span class="mode-switch-label">Anzeige-Modus optimieren:</span>
+        <div class="mode-switch">
+            <button class="mode-btn active" id="mode-mobile-btn">📱 Smartphone</button>
+            <button class="mode-btn" id="mode-desktop-btn">💻 Rechner</button>
+        </div>
+    </div>
     
     <div id="tutorial" class="tutorial-card">
         <h3>💡 Kurzanleitung:</h3>
-        <div class="tutorial-step"><span class="step-icon">1</span><span>Erstelle eine PDF (Ungerade Seiten = Fragen, Gerade Seiten = Antworten).</span></div>
-        <div class="tutorial-step"><span class="step-icon">2</span><span>Lade deine PDF-Datei unten hoch.</span></div>
-        <div class="tutorial-step"><span class="step-icon">3</span><span><b>Tippe auf das PDF-Bild</b> oder die Buttons zum Umdrehen & Weiterschalten!</span></div>
+        <div class="tutorial-step"><span class="step-icon">1</span><span>Ungerade Seiten = Fragen, Gerade Seiten = Antworten.</span></div>
+        <div class="tutorial-step"><span class="step-icon">2</span><span>Wähle oben dein Endgerät für ideale Lesbarkeit.</span></div>
+        <div class="tutorial-step"><span class="step-icon">3</span><span><b>Klicke direkt auf das PDF</b> oder die Tasten zum Umdrehen!</span></div>
     </div>
 
     <label class="custom-file-upload" id="upload-label">
@@ -317,8 +351,9 @@
     let pdfDoc = null;
     let currentQuestionPage = 0;
     let isShowingAnswer = false;
-    let pageHistory = []; // Speicher für vorherige Fragen-Seiten
+    let pageHistory = []; 
 
+    const appContainer = document.getElementById('app-container');
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
     const fileInput = document.getElementById('pdf-file');
@@ -330,11 +365,34 @@
     const statusContainer = document.getElementById('status-container');
     const canvasContainer = document.getElementById('canvas-container');
     const tutorial = document.getElementById('tutorial');
+    const modeSwitchSection = document.getElementById('mode-switch-section');
+    
+    // Switch Buttons
+    const modeMobileBtn = document.getElementById('mode-mobile-btn');
+    const modeDesktopBtn = document.getElementById('mode-desktop-btn');
 
-    // Steuert das "Umdrehen" der Karte bei Klick auf PDF oder Hauptbuttons
+    // Event-Listener für den Modus-Wechsel
+    modeMobileBtn.addEventListener('click', () => setDisplayMode('mobile'));
+    modeDesktopBtn.addEventListener('click', () => setDisplayMode('desktop'));
+
+    function setDisplayMode(mode) {
+        if (mode === 'desktop') {
+            modeMobileBtn.classList.remove('active');
+            modeDesktopBtn.classList.add('active');
+            document.documentElement.style.setProperty('--container-max-width', '950px');
+        } else {
+            modeDesktopBtn.classList.remove('active');
+            modeMobileBtn.classList.add('active');
+            document.documentElement.style.setProperty('--container-max-width', '550px');
+        }
+        // Falls bereits ein Dokument geladen ist, rendern wir die Seite neu, damit sich das Canvas anpasst
+        if (pdfDoc && currentQuestionPage > 0) {
+            renderPage(isShowingAnswer ? currentQuestionPage + 1 : currentQuestionPage);
+        }
+    }
+
     function handleCardFlip() {
         if (!pdfDoc) return;
-        
         if (!isShowingAnswer) {
             showAnswer();
         } else {
@@ -362,6 +420,7 @@
                 
                 uploadLabel.style.display = "none"; 
                 tutorial.style.display = "none"; 
+                modeSwitchSection.style.display = "none"; // Schont den Platz während des Lernens
                 canvasContainer.style.display = "block";
                 
                 prepareNextQuestion(); 
@@ -375,13 +434,10 @@
         fileReader.readAsArrayBuffer(file);
     });
 
-    // Wählt eine neue zufällige Frage
     function prepareNextQuestion() {
         if (!pdfDoc) return;
 
-        // Bevor wir eine NEUE Frage generieren, speichern wir die aktuelle (falls vorhanden) in der Historie
         if (currentQuestionPage !== 0) {
-            // Verhindert doppelte Einträge, falls man mehrfach triggert
             if (pageHistory.length === 0 || pageHistory[pageHistory.length - 1] !== currentQuestionPage) {
                 pageHistory.push(currentQuestionPage);
             }
@@ -399,19 +455,16 @@
         renderPage(currentQuestionPage);
     }
 
-    // Springt zur letzten Frage zurück
     function goToPreviousQuestion() {
         if (pageHistory.length === 0) return;
 
-        // Holt die letzte Fragenseite aus dem Verlauf
         currentQuestionPage = pageHistory.pop();
-        isShowingAnswer = false; // Wir starten bei der alten Karte immer mit der Frage
+        isShowingAnswer = false;
 
         updateUIState();
         renderPage(currentQuestionPage);
     }
 
-    // Zeigt die Antwortseite
     function showAnswer() {
         if (!pdfDoc) return;
 
@@ -427,9 +480,7 @@
         renderPage(answerPage);
     }
 
-    // Aktualisiert die Sichtbarkeit der Buttons und Badges zentral
     function updateUIState() {
-        // "Zurück"-Button nur anzeigen, wenn Elemente in der Historie liegen
         if (pageHistory.length > 0) {
             prevBtn.style.display = "block";
         } else {
@@ -468,7 +519,7 @@
     // Event-Listener
     solveBtn.addEventListener('click', showAnswer);
     nextBtn.addEventListener('click', prepareNextQuestion);
-    prevBtn.addEventListener('click', goToPreviousQuestion); // Neuer Zurück-Event-Listener
+    prevBtn.addEventListener('click', goToPreviousQuestion);
     canvasContainer.addEventListener('click', handleCardFlip);
 
     // Tastatursteuerung
@@ -478,7 +529,6 @@
                 e.preventDefault(); 
                 handleCardFlip();
             } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
-                // Ermöglicht "Zurück" via Backspace oder Pfeiltaste-Links auf dem Desktop
                 e.preventDefault();
                 goToPreviousQuestion();
             }
