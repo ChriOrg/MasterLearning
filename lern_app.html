@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zufalls-PDF Lern-App (Karteikarten-Modus)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 100%;
+            width: 500px; /* Optimiert für A6-Proportionen */
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        /* Styling für den Datei-Upload */
+        input[type="file"] {
+            display: none;
+        }
+        .custom-file-upload {
+            border: 2px dashed #007bff;
+            color: #007bff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .custom-file-upload:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Styling für die Action-Buttons */
+        .btn {
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.2s, transform 0.1s;
+            width: 100%;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        #solve-btn {
+            background-color: #ffc107;
+            color: #212529;
+            display: none;
+        }
+        #solve-btn:hover {
+            background-color: #e0a800;
+        }
+
+        #next-btn {
+            background-color: #28a745;
+            display: none;
+        }
+        #next-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Badge für Status (Frage / Antwort) */
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+        .status-frage {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+        .status-antwort {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        /* Canvas-Container */
+        #canvas-container {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            background: #fff;
+            display: inline-block;
+            max-width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #pdf-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #page-info {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📚 PDF-Karteikarten Trainer</h1>
+    
+    <div class="controls">
+        <label class="custom-file-upload" id="upload-label">
+            <input type="file" id="pdf-file" accept=".pdf">
+            PDF Lernkartei hochladen
+        </label>
+        
+        <div id="status-container"></div>
+
+        <button id="solve-btn" class="btn">💡 Lösung anzeigen (Leertaste)</button>
+        <button id="next-btn" class="btn">➡️ Nächste Frage (Leertaste)</button>
+    </div>
+
+    <div id="canvas-container" style="display: none;">
+        <canvas id="pdf-canvas"></canvas>
+    </div>
+    
+    <div id="page-info">Bitte lade ein PDF hoch, um zu starten.</div>
+</div>
+
+<script>
+    // PDF.js Worker zuweisen
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    let pdfDoc = null;
+    let currentQuestionPage = 0;
+    let isShowingAnswer = false;
+
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('pdf-file');
+    const uploadLabel = document.getElementById('upload-label');
+    const solveBtn = document.getElementById('solve-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const pageInfo = document.getElementById('page-info');
+    const statusContainer = document.getElementById('status-container');
+    const canvasContainer = document.getElementById('canvas-container');
+
+    // Event-Listener für Datei-Upload
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.type !== "application/pdf") {
+            alert("Bitte wähle eine gültige PDF-Datei aus.");
+            return;
+        }
+
+        pageInfo.textContent = "PDF wird geladen... Bitte warten.";
+        const fileReader = new FileReader();
+        
+        fileReader.onload = function() {
+            const typedarray = new Uint8Array(this.result);
+            
+            // PDF laden
+            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                pdfDoc = pdf;
+                
+                // UI erst umschalten, WENN das PDF erfolgreich im Speicher ist
+                uploadLabel.style.display = "none"; 
+                canvasContainer.style.display = "inline-block";
+                
+                // Erste Frage laden
+                prepareNextQuestion(); 
+            }).catch(function(error) {
+                console.error(error);
+                pageInfo.textContent = "Fehler beim Verarbeiten des PDFs.";
+                alert("Fehler beim Laden des PDFs: " + error.message);
+            });
+        };
+
+        fileReader.onerror = function() {
+            alert("Fehler beim Lesen der Datei.");
+        };
+
+        fileReader.readAsArrayBuffer(file);
+    });
+
+    // Wählt eine neue zufällige ungerade Seite aus
+    function prepareNextQuestion() {
+        if (!pdfDoc) return;
+
+        isShowingAnswer = false;
+        solveBtn.style.display = "block";
+        nextBtn.style.display = "none";
+        statusContainer.innerHTML = '<span class="status-badge status-frage">❓ Frage</span>';
+
+        const totalPages = pdfDoc.numPages;
+        
+        // Generiere eine zufällige ungerade Seitenzahl (1, 3, 5, 7, ...)
+        const maxQuestionIndex = Math.ceil(totalPages / 2);
+        const randomCardIndex = Math.floor(Math.random() * maxQuestionIndex);
+        
+        currentQuestionPage = (randomCardIndex * 2) + 1;
+
+        renderPage(currentQuestionPage);
+    }
+
+    // Zeigt die dazugehörige gerade Seite (Antwort) an
+    function showAnswer() {
+        if (!pdfDoc) return;
+
+        const answerPage = currentQuestionPage + 1;
+
+        if (answerPage > pdfDoc.numPages) {
+            alert("Für diese Frage gibt es keine Antwortseite im PDF.");
+            return;
+        }
+
+        isShowingAnswer = true;
+        solveBtn.style.display = "none";
+        nextBtn.style.display = "block";
+        statusContainer.innerHTML = '<span class="status-badge status-antwort">✅ Antwort</span>';
+
+        renderPage(answerPage);
+    }
+
+    // Kernfunktion zum Zeichnen der Seite auf das Canvas
+    function renderPage(pageNum) {
+        pageInfo.textContent = `Seite ${pageNum} von ${pdfDoc.numPages}`;
+
+        pdfDoc.getPage(pageNum).then(function(page) {
+            const viewport = page.getViewport({ scale: 2.0 }); 
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            page.render(renderContext);
+        }).catch(function(err) {
+            console.error("Fehler beim Rendern der Seite: ", err);
+        });
+    }
+
+    // Klick-Aktionen für die Buttons
+    solveBtn.addEventListener('click', showAnswer);
+    nextBtn.addEventListener('click', prepareNextQuestion);
+
+    // Globale Tastatursteuerung (Leertaste und Enter)
+    window.addEventListener('keydown', function(e) {
+        // Nur triggern, wenn ein PDF geladen ist UND der Fokus nicht zufällig auf einem anderen Element liegt
+        if (pdfDoc && (e.key === " " || e.key === "Enter")) {
+            e.preventDefault(); 
+            
+            if (!isShowingAnswer) {
+                showAnswer(); 
+            } else {
+                prepareNextQuestion(); 
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
