@@ -3,171 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zufalls-PDF Lern-App (Karteikarten-Modus)</title>
+    <title>📚 Modern PDF Flashcards</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --success: #10B981;
+            --success-hover: #059669;
+            --warning: #F59E0B;
+            --warning-hover: #D97706;
+            --secondary: #6B7280;
+            --secondary-hover: #4B5563;
+            --bg-gradient: linear-gradient(135deg, #EEF2F6 0%, #E3E8EF 100%);
+            --card-bg: #ffffff;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            padding: 10px; /* Reduziert für mehr Platz auf Smartphones */
+            padding: 16px;
             box-sizing: border-box;
         }
 
         .container {
             text-align: center;
-            background: white;
-            padding: 20px; /* Leicht reduziert für Mobile */
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: var(--card-bg);
+            padding: 32px 24px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.08);
             width: 100%;
-            max-width: 600px; /* Flexibel bis 600px */
+            max-width: 550px;
             box-sizing: border-box;
+            transition: all 0.3s ease;
         }
 
         h1 {
-            color: #333;
+            color: var(--text-main);
             margin-top: 0;
-            font-size: 1.3rem;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 24px;
         }
 
+        /* Tutorial / Onboarding Styling */
+        .tutorial-card {
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .tutorial-card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+
+        .tutorial-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .tutorial-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-icon {
+            background: #E0E7FF;
+            color: var(--primary);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Flexbox für die Steuerungselemente */
         .controls {
-            margin-top: 15px;
+            margin-top: 20px;
             margin-bottom: 10px;
             width: 100%;
+            display: flex;
+            gap: 10px; /* Abstand zwischen den Buttons */
         }
 
-        /* Styling für den Datei-Upload */
+        /* Moderner Datei-Upload */
         input[type="file"] {
             display: none;
         }
         .custom-file-upload {
-            border: 2px dashed #007bff;
-            color: #007bff;
-            padding: 12px 20px;
-            border-radius: 8px;
+            background: #EDF2F7;
+            border: 2px dashed #CBD5E1;
+            color: var(--primary);
+            padding: 20px;
+            border-radius: 16px;
             cursor: pointer;
-            display: inline-block;
-            transition: all 0.3s;
-            font-weight: bold;
-            margin-bottom: 15px;
-            width: 100%;
+            display: block;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            margin-bottom: 10px;
             box-sizing: border-box;
         }
         .custom-file-upload:hover {
-            background-color: #007bff;
-            color: white;
+            border-color: var(--primary);
+            background: #EEF2F6;
         }
 
-        /* Styling für die Action-Buttons */
+        /* Action-Buttons Base */
         .btn {
             color: white;
             border: none;
-            padding: 14px 25px; /* Etwas größer für leichtere Touch-Bedienung */
-            font-size: 1.1rem;
-            border-radius: 8px;
+            padding: 16px 20px;
+            font-size: 1.05rem;
+            border-radius: 14px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background 0.2s, transform 0.1s;
-            width: 100%;
-            margin-top: 5px;
-            font-weight: bold;
-            -webkit-tap-highlight-color: transparent; /* Verhindert unschönen Touch-Blitz auf Mobilgeräten */
+            transition: all 0.2s ease;
+            font-weight: 600;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
         }
         .btn:active {
             transform: scale(0.98);
         }
 
+        /* Haupt-Aktionsbuttons nehmen den restlichen Platz ein */
+        .btn-main {
+            flex: 1; 
+        }
+
         #solve-btn {
-            background-color: #ffc107;
-            color: #212529;
+            background-color: var(--warning);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+            color: white;
             display: none;
         }
         #solve-btn:hover {
-            background-color: #e0a800;
+            background-color: var(--warning-hover);
         }
 
         #next-btn {
-            background-color: #28a745;
+            background-color: var(--success);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
             display: none;
         }
         #next-btn:hover {
-            background-color: #218838;
+            background-color: var(--success-hover);
         }
 
-        /* Badge für Status (Frage / Antwort) */
+        /* Kleinerer Sekundärbutton für "Zurück" */
+        #prev-btn {
+            background-color: #E5E7EB;
+            color: var(--text-main);
+            display: none; /* Wird dynamisch per JS eingeblendet */
+            padding: 16px 22px;
+        }
+        #prev-btn:hover {
+            background-color: #D1D5DB;
+        }
+
+        /* Status-Badge */
         .status-badge {
             display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
+            animation: fadeIn 0.2s ease;
         }
         .status-frage {
-            background-color: #e3f2fd;
-            color: #0d47a1;
+            background-color: #EEF2F6;
+            color: #374151;
+            border: 1px solid #D1D5DB;
         }
         .status-antwort {
-            background-color: #e8f5e9;
-            color: #1b5e20;
+            background-color: #D1FAE5;
+            color: #065F46;
         }
 
-        /* Canvas-Container */
+        /* Interaktiver Canvas-Container */
         #canvas-container {
             margin-top: 5px;
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
             background: #fff;
             display: block;
-            width: 100%; /* Nutzt die volle Breite des Containers */
-            border-radius: 4px;
+            width: 100%;
+            border-radius: 16px;
             overflow: hidden;
             box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        #canvas-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+        }
+        
+        #canvas-container:active {
+            transform: scale(0.99);
         }
 
         #pdf-canvas {
             display: block;
-            width: 100% !important; /* Erzwingt, dass das Canvas skaliert */
-            height: auto !important; /* Behält das Seitenverhältnis bei */
+            width: 100% !important;
+            height: auto !important;
         }
 
         #page-info {
-            margin-top: 12px;
-            font-size: 0.9rem;
-            color: #666;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
         }
 
-        /* SPEZIELLES STYLING FÜR QUERFORMAT (LANDSCAPE) AUF SMARTPHONES */
-        @media screen and (max-height: 500px) and (orientation: landscape) {
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Anpassungen für das Querformat (Mobil) */
+        @media screen and (max-height: 520px) and (orientation: landscape) {
             body {
-                padding: 5px;
+                padding: 8px;
             }
             .container {
-                padding: 10px;
-                max-width: 100%; /* Nutzt im Querformat den maximalen Platz */
+                padding: 16px;
+                max-width: 100%;
+                border-radius: 16px;
             }
             h1 {
-                font-size: 1.1rem;
-                margin-bottom: 5px;
+                font-size: 1.3rem;
+                margin-bottom: 12px;
+            }
+            .tutorial-card {
+                padding: 12px;
+                margin-bottom: 12px;
             }
             .custom-file-upload {
-                padding: 8px 15px;
-                margin-bottom: 5px;
+                padding: 14px;
             }
             .status-badge {
-                margin-bottom: 5px;
-                padding: 3px 10px;
-                font-size: 0.8rem;
+                margin-bottom: 10px;
+                padding: 4px 12px;
             }
             .btn {
-                padding: 10px 20px;
+                padding: 12px;
                 font-size: 1rem;
             }
         }
@@ -176,11 +282,18 @@
 <body>
 
 <div class="container">
-    <h1>📚 PDF-Karteikarten Trainer</h1>
+    <h1>📚 PDF Karteikarten</h1>
     
+    <div id="tutorial" class="tutorial-card">
+        <h3>💡 Kurzanleitung:</h3>
+        <div class="tutorial-step"><span class="step-icon">1</span><span>Erstelle eine PDF (Ungerade Seiten = Fragen, Gerade Seiten = Antworten).</span></div>
+        <div class="tutorial-step"><span class="step-icon">2</span><span>Lade deine PDF-Datei unten hoch.</span></div>
+        <div class="tutorial-step"><span class="step-icon">3</span><span><b>Tippe auf das PDF-Bild</b> oder die Buttons zum Umdrehen & Weiterschalten!</span></div>
+    </div>
+
     <label class="custom-file-upload" id="upload-label">
         <input type="file" id="pdf-file" accept=".pdf">
-        PDF Lernkartei hochladen
+        📂 PDF Lernkartei auswählen
     </label>
     
     <div id="status-container"></div>
@@ -190,20 +303,21 @@
     </div>
     
     <div class="controls">
-        <button id="solve-btn" class="btn">💡 Lösung anzeigen (Leertaste)</button>
-        <button id="next-btn" class="btn">➡️ Nächste Frage (Leertaste)</button>
+        <button id="prev-btn" class="btn" title="Vorherige Frage">↩️</button>
+        <button id="solve-btn" class="btn btn-main">💡 Lösung anzeigen</button>
+        <button id="next-btn" class="btn btn-main">➡️ Nächste Frage</button>
     </div>
     
-    <div id="page-info">Bitte lade ein PDF hoch, um zu starten.</div>
+    <div id="page-info">Warte auf PDF...</div>
 </div>
 
 <script>
-    // PDF.js Worker zuweisen
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
     let pdfDoc = null;
     let currentQuestionPage = 0;
     let isShowingAnswer = false;
+    let pageHistory = []; // Speicher für vorherige Fragen-Seiten
 
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
@@ -211,11 +325,23 @@
     const uploadLabel = document.getElementById('upload-label');
     const solveBtn = document.getElementById('solve-btn');
     const nextBtn = document.getElementById('next-btn');
+    const prevBtn = document.getElementById('prev-btn');
     const pageInfo = document.getElementById('page-info');
     const statusContainer = document.getElementById('status-container');
     const canvasContainer = document.getElementById('canvas-container');
+    const tutorial = document.getElementById('tutorial');
 
-    // Event-Listener für Datei-Upload
+    // Steuert das "Umdrehen" der Karte bei Klick auf PDF oder Hauptbuttons
+    function handleCardFlip() {
+        if (!pdfDoc) return;
+        
+        if (!isShowingAnswer) {
+            showAnswer();
+        } else {
+            prepareNextQuestion();
+        }
+    }
+
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -225,7 +351,7 @@
             return;
         }
 
-        pageInfo.textContent = "PDF wird geladen... Bitte warten.";
+        pageInfo.textContent = "Wird geladen...";
         const fileReader = new FileReader();
         
         fileReader.onload = function() {
@@ -235,68 +361,96 @@
                 pdfDoc = pdf;
                 
                 uploadLabel.style.display = "none"; 
-                canvasContainer.style.display = "block"; /* Auf block geändert für sauberes Mobile-Layout */
+                tutorial.style.display = "none"; 
+                canvasContainer.style.display = "block";
                 
                 prepareNextQuestion(); 
             }).catch(function(error) {
                 console.error(error);
-                pageInfo.textContent = "Fehler beim Verarbeiten des PDFs.";
+                pageInfo.textContent = "Fehler beim Laden.";
                 alert("Fehler beim Laden des PDFs: " + error.message);
             });
-        };
-
-        fileReader.onerror = function() {
-            alert("Fehler beim Lesen der Datei.");
         };
 
         fileReader.readAsArrayBuffer(file);
     });
 
-    // Wählt eine neue zufällige ungerade Seite aus
+    // Wählt eine neue zufällige Frage
     function prepareNextQuestion() {
         if (!pdfDoc) return;
 
-        isShowingAnswer = false;
-        solveBtn.style.display = "block";
-        nextBtn.style.display = "none";
-        statusContainer.innerHTML = '<span class="status-badge status-frage">❓ Frage</span>';
+        // Bevor wir eine NEUE Frage generieren, speichern wir die aktuelle (falls vorhanden) in der Historie
+        if (currentQuestionPage !== 0) {
+            // Verhindert doppelte Einträge, falls man mehrfach triggert
+            if (pageHistory.length === 0 || pageHistory[pageHistory.length - 1] !== currentQuestionPage) {
+                pageHistory.push(currentQuestionPage);
+            }
+        }
 
-        const totalPages = pdfDoc.numPages;
+        isShowingAnswer = false;
         
+        const totalPages = pdfDoc.numPages;
         const maxQuestionIndex = Math.ceil(totalPages / 2);
         const randomCardIndex = Math.floor(Math.random() * maxQuestionIndex);
         
         currentQuestionPage = (randomCardIndex * 2) + 1;
 
+        updateUIState();
         renderPage(currentQuestionPage);
     }
 
-    // Zeigt die dazugehörige gerade Seite (Antwort) an
+    // Springt zur letzten Frage zurück
+    function goToPreviousQuestion() {
+        if (pageHistory.length === 0) return;
+
+        // Holt die letzte Fragenseite aus dem Verlauf
+        currentQuestionPage = pageHistory.pop();
+        isShowingAnswer = false; // Wir starten bei der alten Karte immer mit der Frage
+
+        updateUIState();
+        renderPage(currentQuestionPage);
+    }
+
+    // Zeigt die Antwortseite
     function showAnswer() {
         if (!pdfDoc) return;
 
         const answerPage = currentQuestionPage + 1;
 
         if (answerPage > pdfDoc.numPages) {
-            alert("Für diese Frage gibt es keine Antwortseite im PDF.");
+            alert("Für diese Frage gibt es keine Antwortseite.");
             return;
         }
 
         isShowingAnswer = true;
-        solveBtn.style.display = "none";
-        nextBtn.style.display = "block";
-        statusContainer.innerHTML = '<span class="status-badge status-antwort">✅ Antwort</span>';
-
+        updateUIState();
         renderPage(answerPage);
     }
 
-    // Kernfunktion zum Zeichnen der Seite auf das Canvas
+    // Aktualisiert die Sichtbarkeit der Buttons und Badges zentral
+    function updateUIState() {
+        // "Zurück"-Button nur anzeigen, wenn Elemente in der Historie liegen
+        if (pageHistory.length > 0) {
+            prevBtn.style.display = "block";
+        } else {
+            prevBtn.style.display = "none";
+        }
+
+        if (!isShowingAnswer) {
+            solveBtn.style.display = "block";
+            nextBtn.style.display = "none";
+            statusContainer.innerHTML = '<span class="status-badge status-frage">❓ Frage</span>';
+        } else {
+            solveBtn.style.display = "none";
+            nextBtn.style.display = "block";
+            statusContainer.innerHTML = '<span class="status-badge status-antwort">✅ Antwort</span>';
+        }
+    }
+
     function renderPage(pageNum) {
-        pageInfo.textContent = `Seite ${pageNum} von ${pdfDoc.numPages}`;
+        pageInfo.textContent = `Karte ${Math.ceil(pageNum / 2)} (Seite ${pageNum} von ${pdfDoc.numPages})`;
 
         pdfDoc.getPage(pageNum).then(function(page) {
-            // Skalierung auf 2.0 belassen, damit die interne Auflösung (Pixeldichte) scharf bleibt.
-            // Die CSS-Regeln (width: 100%) sorgen für die korrekte Anpassung an den Bildschirm.
             const viewport = page.getViewport({ scale: 2.0 }); 
             canvas.height = viewport.height;
             canvas.width = viewport.width;
@@ -307,23 +461,26 @@
             };
             page.render(renderContext);
         }).catch(function(err) {
-            console.error("Fehler beim Rendern der Seite: ", err);
+            console.error("Fehler beim Rendern: ", err);
         });
     }
 
-    // Klick-Aktionen für die Buttons
+    // Event-Listener
     solveBtn.addEventListener('click', showAnswer);
     nextBtn.addEventListener('click', prepareNextQuestion);
+    prevBtn.addEventListener('click', goToPreviousQuestion); // Neuer Zurück-Event-Listener
+    canvasContainer.addEventListener('click', handleCardFlip);
 
-    // Globale Tastatursteuerung (Leertaste und Enter) für Desktop-Nutzer beibehalten
+    // Tastatursteuerung
     window.addEventListener('keydown', function(e) {
-        if (pdfDoc && (e.key === " " || e.key === "Enter")) {
-            e.preventDefault(); 
-            
-            if (!isShowingAnswer) {
-                showAnswer(); 
-            } else {
-                prepareNextQuestion(); 
+        if (pdfDoc) {
+            if (e.key === " " || e.key === "Enter") {
+                e.preventDefault(); 
+                handleCardFlip();
+            } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+                // Ermöglicht "Zurück" via Backspace oder Pfeiltaste-Links auf dem Desktop
+                e.preventDefault();
+                goToPreviousQuestion();
             }
         }
     });
