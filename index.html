@@ -352,6 +352,10 @@
     let currentQuestionPage = 0;
     let isShowingAnswer = false;
     let pageHistory = []; 
+    
+    // Neue Variablen für die Non-Duplikat-Logik
+    let shuffledQuestions = [];
+    let currentIndex = -1;
 
     const appContainer = document.getElementById('app-container');
     const canvas = document.getElementById('pdf-canvas');
@@ -423,6 +427,8 @@
                 modeSwitchSection.style.display = "none"; // Schont den Platz während des Lernens
                 canvasContainer.style.display = "block";
                 
+                // Generiere und mische den Fragenstapel für diese Lerneinheit
+                initShuffledDeck();
                 prepareNextQuestion(); 
             }).catch(function(error) {
                 console.error(error);
@@ -434,9 +440,30 @@
         fileReader.readAsArrayBuffer(file);
     });
 
-    function prepareNextQuestion() {
-        if (!pdfDoc) return;
+    // Erstellt ein durchgemischtes Array aller ungeraden Fragenseiten
+    function initShuffledDeck() {
+        const totalPages = pdfDoc.numPages;
+        const maxQuestionIndex = Math.ceil(totalPages / 2);
+        shuffledQuestions = [];
+        
+        for (let i = 0; i < maxQuestionIndex; i++) {
+            shuffledQuestions.push((i * 2) + 1);
+        }
 
+        // Fisher-Yates Shuffle Algorithmus
+        for (let i = shuffledQuestions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+        }
+        
+        currentIndex = -1;
+        pageHistory = [];
+    }
+
+    function prepareNextQuestion() {
+        if (!pdfDoc || shuffledQuestions.length === 0) return;
+
+        // Historie befüllen, falls es nicht die allererste Karte ist
         if (currentQuestionPage !== 0) {
             if (pageHistory.length === 0 || pageHistory[pageHistory.length - 1] !== currentQuestionPage) {
                 pageHistory.push(currentQuestionPage);
@@ -444,12 +471,16 @@
         }
 
         isShowingAnswer = false;
+        currentIndex++;
+
+        // Wenn alle Fragen durch sind, mischen wir für eine neue Runde neu
+        if (currentIndex >= shuffledQuestions.length) {
+            alert("Glückwunsch! Du hast alle Karten dieser Lerneinheit gesehen. Der Stapel wird neu gemischt.");
+            initShuffledDeck();
+            currentIndex = 0;
+        }
         
-        const totalPages = pdfDoc.numPages;
-        const maxQuestionIndex = Math.ceil(totalPages / 2);
-        const randomCardIndex = Math.floor(Math.random() * maxQuestionIndex);
-        
-        currentQuestionPage = (randomCardIndex * 2) + 1;
+        currentQuestionPage = shuffledQuestions[currentIndex];
 
         updateUIState();
         renderPage(currentQuestionPage);
@@ -460,6 +491,9 @@
 
         currentQuestionPage = pageHistory.pop();
         isShowingAnswer = false;
+        
+        // Synchronisiere den currentIndex mit der Historie
+        currentIndex = shuffledQuestions.indexOf(currentQuestionPage);
 
         updateUIState();
         renderPage(currentQuestionPage);
